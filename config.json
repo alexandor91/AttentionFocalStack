@@ -1,0 +1,62 @@
+{
+    "General":{
+        "device":"cuda",
+        "type":"depth",
+        "model_timm":"vit_base_patch16_384",
+        "emb_dim":768,
+        "hooks":[2, 5, 8, 11],
+        "read":"projection",
+        "resample_dim":256,
+        "optim":"sgd",
+        "lr_backbone":1e-6,
+        "lr_scratch":1e-4,
+        "loss_depth":"ssi",
+        "loss_segmentation":"ce",
+        "momentum":0.9,
+        "epochs":100,
+        "batch_size":1,
+        "path_model":"models",
+        "path_predicted_images":"output",
+        "seed":0,
+        "patch_size":16
+    },
+    "Dataset":{
+        "paths":{
+            "path_dataset":"./datasets",
+            "list_datasets":["01_Warehouse", "nyuv2", "02_Cafe", "03_Classroom", "04_Church", "05_ComputerRoom",  "06_MeetingRoom", "07_Library", "08_Laboratory", "09_BookStore", "10_Corridor", "11_Bedroom", "12_Livingroom", "13_Kitchen", "14_Bathroom", "17_Hospital", "18_Store"],
+            "path_images":"images",
+            "path_segmentations":"segmentations",
+            "path_depths":"depths"
+        },
+        "extensions":{
+            "ext_images":".jpg",
+            "ext_segmentations":".png",
+            "ext_depths":".jpg"
+        },
+        "splits":{
+            "split_train":0.6,
+            "split_val":0.2,
+            "split_test":0.2
+        },
+        "transforms":{
+            "resize":384,
+            "p_flip":0.5,
+            "p_crop":0.3,
+            "p_rot":0.2
+        },
+        "classes":{
+            "1": {
+                "name": "person",
+                "color": [150,5,61]
+            }
+        }
+    },
+    "wandb":{
+        "enable":false,
+        "username":"younesbelkada",
+        "images_to_show":3,
+        "im_h":540,
+        "im_w":980
+    }
+
+}
