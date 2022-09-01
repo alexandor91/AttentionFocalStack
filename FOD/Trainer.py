@@ -4,13 +4,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import wandb
 import cv2
-import torch.nn as nn
-import tensorboard
+
 from tqdm import tqdm
 from os import replace
 from numpy.core.numeric import Inf
 from torch.utils.tensorboard import SummaryWriter
-from FOD.utils import get_losses, get_optimizer, get_schedulers, create_dir
+from FOD.api import get_losses, get_optimizer, get_schedulers, create_dir
 from FOD.FocusOnDepth import FocusOnDepth
 writer = SummaryWriter('./pth/to/log')
 from FOD.ConvFocus import ConvFocus

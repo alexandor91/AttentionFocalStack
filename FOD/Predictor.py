@@ -13,7 +13,7 @@ import torch
 import torch.nn as nn
 
 from FOD.FocusOnDepth import FocusOnDepth
-from FOD.utils import create_dir
+from FOD.api import create_dir
 from FOD.dataset import show
 
 def repackage_hidden(h):
@@ -55,6 +55,7 @@ class Predictor(object):
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
         ])
+        self.test_type = self.config['General']['test_type']
         self.output_dir = self.config['General']['path_predicted_images']
         create_dir(self.output_dir)
 
@@ -65,8 +66,10 @@ class Predictor(object):
                 pil_im = Image.open(images)
                 original_size = pil_im.size
 
-                hidden = repackage_hidden(hidden)
-
+                if self.test_type == "focalstack":
+                    hidden = repackage_hidden(hidden)
+                elif self.test_type == "single":
+                    hidden = None
                 #pil_im = self.attn(pil_im)
 
                 tensor_im = self.transform_image(pil_im).unsqueeze(0)

@@ -13,7 +13,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 import torchvision.transforms.functional as TF
 
-from FOD.utils import get_total_paths, get_splitted_dataset, get_transforms
+from FOD.api import get_total_paths, get_splitted_dataset, get_transforms
 
 def show(imgs):
     fix, axs = plt.subplots(ncols=len(imgs), squeeze=False)
@@ -54,7 +54,7 @@ class AutoFocusDataset(Dataset):
         self.paths_images, self.paths_depths = get_splitted_dataset(config, self.split, dataset_name, self.paths_images, self.paths_depths)
 
         # Get the transforms
-        self.transform_image, self.transform_depth, self.transform_seg = get_transforms(config)
+        self.transform_image, self.transform_depth = get_transforms(config)
 
         # get p_flip from config
         self.p_flip = config['Dataset']['transforms']['p_flip'] if split=='train' else 0

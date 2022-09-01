@@ -11,6 +11,7 @@
         "lr_backbone":1e-6,
         "lr_scratch":1e-4,
         "loss_depth":"ssi",
+        "test_type": "focalstack",
         "loss_segmentation":"ce",
         "momentum":0.9,
         "epochs":100,

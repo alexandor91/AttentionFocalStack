@@ -5,9 +5,9 @@ import timm
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 
-from FOD.Reassemble import Reassemble
+from FOD.Composition import Composition
 from FOD.Fusion import Fusion
-from FOD.Head import HeadDepth, HeadSeg
+from FOD.Head import HeadDepth
 
 import numpy
 import cv2
@@ -72,11 +72,12 @@ class FocusOnDepth(nn.Module):
         self.hooks = hooks
         self._get_layers_from_hooks(self.hooks)
 
-        #Reassembles Fusion
+
+        # Fusion
         self.reassembles = []
         self.fusions = []
         for s in reassemble_s:
-            self.reassembles.append(Reassemble(image_size, read, patch_size, s, emb_dim, resample_dim))
+            self.reassembles.append(Composition(image_size, read, patch_size, s, emb_dim, resample_dim))
             self.fusions.append(Fusion(resample_dim))
         self.reassembles = nn.ModuleList(self.reassembles)
         self.fusions = nn.ModuleList(self.fusions)
