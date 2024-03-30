@@ -14,30 +14,63 @@
         "test_type": "focalstack",
         "loss_segmentation":"ce",
         "momentum":0.9,
-        "epochs":100,
-        "batch_size":1,
-        "path_model":"models",
+        "epochs":80,
+        "batch_size":4,
+        "path_model":"/home/eavise3d/AttentionFocalStack/weight",
         "path_predicted_images":"output",
         "seed":0,
         "patch_size":16
     },
     "Dataset":{
         "paths":{
-            "path_dataset":"./datasets",
-            "list_datasets":["01_Warehouse", "nyuv2", "02_Cafe", "03_Classroom", "04_Church", "05_ComputerRoom",  "06_MeetingRoom", "07_Library", "08_Laboratory", "09_BookStore", "10_Corridor", "11_Bedroom", "12_Livingroom", "13_Kitchen", "14_Bathroom", "17_Hospital", "18_Store"],
-            "path_images":"images",
-            "path_segmentations":"segmentations",
-            "path_depths":"depths"
+            "path_dataset":"/home/eavise3d/Downloads/nyu-archive/nyu_data/data/nyu2_train",
+            "list_datasets":["basement_0001a_out", "basement_0001b_out", "bathroom_0001_out", "bathroom_0002_out", "bathroom_0005_out", "bathroom_0006_out", "bathroom_0007_out", "bathroom_0010_out",
+"bathroom_0011_out", "bathroom_0013_out", "bathroom_0014a_out", "bathroom_0016_out", "bathroom_0019_out", "bathroom_0023_out", "bathroom_0024_out", "bathroom_0028_out", "bathroom_0030_out", 
+"bathroom_0033_out", "bathroom_0034_out", "bathroom_0035_out", "bathroom_0039_out", "bathroom_0041_out", "bathroom_0042_out", "bathroom_0045a_out", "bathroom_0048_out", "bathroom_0049_out",
+"bathroom_0050_out", "bathroom_0051_out", "bathroom_0053_out", "bathroom_0054_out", "bathroom_0055_out", "bathroom_0056_out", "bathroom_0057_out", "bedroom_0004_out", "bedroom_0010_out",
+"bedroom_0012_out", "bedroom_0014_out", "bedroom_0015_out", "bedroom_0016_out", "bedroom_0017_out", "bedroom_0019_out", "bedroom_0020_out", "bedroom_0021_out", "bedroom_0025_out",
+"bedroom_0026_out", "bedroom_0028_out", "bedroom_0029_out", "bedroom_0031_out", "bedroom_0033_out", "bedroom_0034_out", "bedroom_0035_out", "bedroom_0036_out", "bedroom_0038_out",
+"bedroom_0039_out", "bedroom_0040_out", "bedroom_0041_out", "bedroom_0042_out", "bedroom_0045_out", "bedroom_0047_out", "bedroom_0050_out", "bedroom_0051_out", "bedroom_0052_out",
+"bedroom_0053_out", "bedroom_0056a_out", "bedroom_0056b_out", "bedroom_0057_out", "bedroom_0059_out", "bedroom_0060_out", "bedroom_0062_out", "bedroom_0063_out", "bedroom_0065_out",
+"bedroom_0066_out", "bedroom_0067a_out", "bedroom_0067b_out", "bedroom_0069_out", "bedroom_0071_out", "bedroom_0072_out", "bedroom_0074_out", "bedroom_0076a_out", "bedroom_0078_out",
+"bedroom_0079_out", "bedroom_0080_out", "bedroom_0081_out", "bedroom_0082_out", "bedroom_0086_out", "bedroom_0090_out", "bedroom_0094_out", "bedroom_0096_out", "bedroom_0097_out",
+"bedroom_0098_out", "bedroom_0100_out", "bedroom_0104_out", "bedroom_0106_out", "bedroom_0107_out", "bedroom_0113_out", "bedroom_0116_out", "bedroom_0118_out", "bedroom_0120_out",
+"bedroom_0124_out", "bedroom_0125a_out", "bedroom_0125b_out", "bedroom_0126_out", "bedroom_0129_out", "bedroom_0130_out", "bedroom_0132_out", "bedroom_0136_out", "bedroom_0138_out",
+"bedroom_0140_out", "bookstore_0001d_out", "bookstore_0001e_out", "bookstore_0001f_out", "bookstore_0001g_out", "bookstore_0001h_out", "bookstore_0001i_out", "bookstore_0001j_out",
+"cafe_0001a_out", "cafe_0001b_out", "cafe_0001c_out", "classroom_0003_out", "classroom_0004_out", "classroom_0005_out", "classroom_0006_out", "classroom_0010_out", "classroom_0011_out",
+"classroom_0012_out", "classroom_0016_out", "classroom_0018_out", "classroom_0022_out", "computer_lab_0002_out", "conference_room_0001_out", "conference_room_0002_out", "dinette_0001_out",
+"dining_room_0001b_out", "dining_room_0002_out", "dining_room_0004_out", "dining_room_0007_out", "dining_room_0008_out", "dining_room_0010_out", "dining_room_0012_out", "dining_room_0013_out",
+"dining_room_0014_out", "dining_room_0015_out", "dining_room_0016_out", "dining_room_0019_out", "dining_room_0023_out", "dining_room_0024_out", "dining_room_0028_out", "dining_room_0029_out",
+"dining_room_0031_out", "dining_room_0033_out", "dining_room_0034_out", "dining_room_0037_out", "excercise_room_0001_out", "foyer_0002_out", "furniture_store_0001a_out", "furniture_store_0001b_out",
+"furniture_store_0001c_out", "furniture_store_0001d_out", "furniture_store_0001e_out", "furniture_store_0001f_out", "furniture_store_0002a_out", "furniture_store_0002b_out", "furniture_store_0002c_out",
+"furniture_store_0002d_out", "home_office_0004_out", "home_office_0005_out", "home_office_0006_out", "home_office_0007_out", "home_office_0008_out", "home_office_0011_out", "home_office_0013_out",
+"home_storage_0001_out", "indoor_balcony_0001_out", "kitchen_0003_out", "kitchen_0006_out", "kitchen_0008_out", "kitchen_0010_out", "kitchen_0011a_out", "kitchen_0011b_out", "kitchen_0016_out",
+"kitchen_0017_out", "kitchen_0019a_out", "kitchen_0019b_out", "kitchen_0028a_out", "kitchen_0028b_out", "kitchen_0029a_out", "kitchen_0029b_out", "kitchen_0029c_out", "kitchen_0031_out",
+"kitchen_0033_out", "kitchen_0035a_out", "kitchen_0035b_out", "kitchen_0037_out", "kitchen_0041_out", "kitchen_0043_out", "kitchen_0045a_out", "kitchen_0045b_out", "kitchen_0047_out",
+"kitchen_0048_out", "kitchen_0049_out", "kitchen_0050_out", "kitchen_0051_out", "kitchen_0052_out", "kitchen_0053_out", "kitchen_0059_out", "kitchen_0060_out", "laundry_room_0001_out",
+"living_room_0004_out", "living_room_0005_out", "living_room_0006_out", "living_room_0010_out", "living_room_0011_out", "living_room_0012_out", "living_room_0018_out", "living_room_0019_out",
+"living_room_0020_out", "living_room_0022_out", "living_room_0029_out", "living_room_0032_out", "living_room_0033_out", "living_room_0035_out", "living_room_0037_out", "living_room_0038_out",
+"living_room_0039_out", "living_room_0040_out", "living_room_0042a_out", "living_room_0042b_out", "living_room_0046a_out", "living_room_0046b_out", "living_room_0047a_out", "living_room_0047b_out",
+"living_room_0050_out", "living_room_0055_out", "living_room_0058_out", "living_room_0062_out", "living_room_0063_out", "living_room_0067_out", "living_room_0068_out", "living_room_0069a_out",
+"living_room_0069b_out", "living_room_0070_out", "living_room_0071_out", "living_room_0078_out", "living_room_0082_out", "living_room_0083_out", "living_room_0085_out", "living_room_0086a_out",
+"living_room_0086b_out", "nyu_office_0_out", "nyu_office_1_out", "office_0003_out", "office_0004_out", "office_0006_out", "office_0009_out", "office_0011_out", "office_0012_out",
+"office_0018_out", "office_0019_out", "office_0021_out", "office_0023_out", "office_0024_out", "office_0025_out", "office_0026_out", "office_kitchen_0001a_out", "office_kitchen_0001b_out",
+"office_kitchen_0003_out", "playroom_0002_out", "playroom_0003_out", "playroom_0004_out", "playroom_0006_out", "printer_room_0001_out", "reception_room_0001a_out", "reception_room_0001b_out",
+"reception_room_0002_out", "reception_room_0004_out", "student_lounge_0001_out", "study_0003_out", "study_0004_out", "study_0005_out", "study_0006_out", "study_0008_out", "study_room_0004_out",
+"study_room_0005a_out", "study_room_0005b_out"],
+            "path_images":"rgb",
+            "path_segmentations":"",
+            "path_depths":"depth"
         },
         "extensions":{
             "ext_images":".jpg",
             "ext_segmentations":".png",
-            "ext_depths":".jpg"
+            "ext_depths":".png"
         },
         "splits":{
-            "split_train":0.6,
+            "split_train":0.8,
             "split_val":0.2,
-            "split_test":0.2
+            "split_test":0.0
         },
         "transforms":{
             "resize":384,
@@ -54,10 +87,10 @@
     },
     "wandb":{
         "enable":false,
-        "username":"younesbelkada",
+        "username":"alexander.kang",
         "images_to_show":3,
-        "im_h":540,
-        "im_w":980
+        "im_h":640,
+        "im_w":480
     }
 
 }

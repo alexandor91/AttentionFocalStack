@@ -17,6 +17,54 @@ from torchvision import transforms
 #class LSTMFocusOnDepth(nn.Module):
 from PIL import Image
 
+# class RNN(nn.Module):
+#     def __init__(self, rnn_layer=2, input_size=1, hidden_size=4):
+#         super(RNN, self).__init__()
+#         self.rnn_layer = rnn_layer
+#         self.input_size = input_size
+#         self.hidden_size = hidden_size
+#         self.rnn = nn.RNN(
+#             input_size = self.input_size,  #每个字母的向量长度
+#             hidden_size=self.hidden_size,  # RNN隐藏神经元个数
+#             num_layers=self.rnn_layer,  # RNN隐藏层个数
+#             batch_first=True
+#         )
+#         self.fc = nn.Linear(self.hidden_size, 1)
+#     def init_hidden(self, x):
+#         batch_size = x.shape[0]
+#         init_h = torch.zeros(self.rnn_layer, batch_size, self.hidden_size, device=x.device).requires_grad_()
+#         return init_h
+#     def forward(self, x, h=None):
+#         x = x.unsqueeze(2)
+#         h = h if h else self.init_hidden(x)
+#         out, h = self.rnn(x, h)
+#         out = self.fc(out[:,-1,:]).squeeze(1)
+#         return out
+
+class LSTM(nn.Module):
+    def __init__(self, lstm_layer=2, input_dim=1, hidden_size=8):
+        super(LSTM, self).__init__()
+        self.hidden_size=hidden_size
+        self.lstm_layer = lstm_layer
+        self.emb_layer = nn.Linear(input_dim, hidden_size)
+        self.out_layer = nn.Linear(hidden_size, input_dim)
+        self.lstm = nn.LSTM(input_size=rnn_unit, hidden_size=hidden_size, num_layers=self.lstm_layer, batch_first=True)
+    
+    def init_hidden(self, x):
+        batch_size = x.shape[0]
+        init_h = (torch.zeros(self.lstm_layer, batch_size, self.hidden_size, device=x.device),
+                torch.zeros(self.lstm_layer, batch_size, self.hidden_size, device=x.device))
+        return init_h
+
+    def forward(self, x, h=None):
+        # batch x stack size x dim
+        x = x.unsqueeze(2)
+        h = h if h else self.init_hidden(x)
+        x = self.emb_layer(x)        
+        output, hidden = self.lstm(x, h)        
+        out = self.out_layer(output[:,-1,:]).squeeze(1)
+        return out
+    
 class FocusOnDepth(nn.Module):
     def __init__(self,
                  image_size         = (3, 384, 384),
@@ -96,15 +144,20 @@ class FocusOnDepth(nn.Module):
     def forward(self, img, hidden=None):
         # print(img.shape) (1,1,384,384)
         t = self.transformer_encoders(img)
+        print('#########encoder starts!!!!##########')
+        print(t.shape)
+        print(img.shape)
         #print(t.shape, hidden.shape) #(1,1000)
-        t, hidden = self.lstm_encoder(t, hidden)
+        # t, hidden = self.lstm_encoder(t, hidden)
         count = 0
         previous_stage = None
         for i in np.arange(len(self.fusions)-1, -1, -1):
             hook_to_take = 't'+str(self.hooks[i])
+            print('###########hook starts!!!!!!###########')
 
             activation_result = self.activation[hook_to_take]
             reassemble_result = self.reassembles[i](activation_result)
+            print(activation_result.shape)
 
             fusion_result = self.fusions[i](reassemble_result, previous_stage)
 
@@ -131,7 +184,7 @@ class FocusOnDepth(nn.Module):
             out_depth = self.head_depth(previous_stage)
         #if self.head_segmentation != None:
         #    out_segmentation = self.head_segmentation(previous_stage)
-        return out_depth, hidden
+        return out_depth #, hidden
 
     def _get_layers_from_hooks(self, hooks):
         def get_activation(name):

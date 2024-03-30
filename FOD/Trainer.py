@@ -13,6 +13,10 @@ from FOD.api import get_losses, get_optimizer, get_schedulers, create_dir
 from FOD.FocusOnDepth import FocusOnDepth
 writer = SummaryWriter('./pth/to/log')
 from FOD.ConvFocus import ConvFocus
+from torchsummary import summary
+
+hidden_layer_num = 1
+
 class Trainer(object):
     def __init__(self, config):
         super().__init__()
@@ -20,17 +24,31 @@ class Trainer(object):
         self.type = self.config['General']['type']
 
         self.device = torch.device(self.config['General']['device'] if torch.cuda.is_available() else "cpu")
-        print("device: %s" % self.device)
+        
+        print("##########device: %s" % self.device)
         resize = config['Dataset']['transforms']['resize']
-        self.model = ConvFocus(config)
+        # self.model = ConvFocus(config)
+        self.model = FocusOnDepth(
+                    image_size  =   (3,resize,resize),
+                    emb_dim     =   config['General']['emb_dim'],
+                    resample_dim=   config['General']['resample_dim'],
+                    read        =   config['General']['read'],
+                    nclasses    =   len(config['Dataset']['classes']) + 1,
+                    hooks       =   config['General']['hooks'],
+                    model_timm  =   config['General']['model_timm'],
+                    type        =   self.type,
+                    patch_size  =   config['General']['patch_size'],
+        )
+
 
         self.model.to(self.device)
         # print(self.model)
         # exit(0)
 
-        self.loss_depth, self.loss_segmentation = get_losses(config)
+        self.loss_depth = get_losses(config)
         self.optimizer_backbone, self.optimizer_scratch = get_optimizer(config, self.model)
         self.schedulers = get_schedulers([self.optimizer_backbone, self.optimizer_scratch])
+    
 
     def train(self, train_dataloader, val_dataloader):
         epochs = self.config['General']['epochs']
@@ -43,6 +61,9 @@ class Trainer(object):
                 "batch_size": self.config['General']['batch_size']
             }
         val_loss = Inf
+        # summary(self.model, (-1, 3, 384, 384))
+        print(self.model)
+
         for epoch in range(epochs):  # loop over the dataset multiple times
             print("Epoch ", epoch+1)
             running_loss = 0.0
@@ -56,8 +77,9 @@ class Trainer(object):
                 self.optimizer_backbone.zero_grad()
                 self.optimizer_scratch.zero_grad()
                 # forward + backward + optimizer
-                hidden = self.model.init_hidden(10)
-                output_depths, hidden = self.model(X, hidden)
+                # hidden = self.model.init_hidden(hidden_layer_num)
+                hidden = None
+                output_depths = self.model(X)
                 output_depths = output_depths.squeeze(1) if output_depths != None else None
 
                 Y_depths = Y_depths.squeeze(1) #1xHxW -> HxW
@@ -87,14 +109,12 @@ class Trainer(object):
 
             new_val_loss = self.run_eval(val_dataloader)
 
-            if epoch%10 ==0:
-                self.save_model()
-
+            if epoch%20 ==0:
+                self.save_model(epoch)
             if new_val_loss < val_loss:
                 val_loss = new_val_loss
-                self.save_model()
+                self.save_model(epoch)
             writer.add_scalar('val_loss', new_val_loss, epoch)
-
             self.schedulers[0].step(new_val_loss)
             self.schedulers[1].step(new_val_loss)
 
@@ -118,8 +138,8 @@ class Trainer(object):
             pbar.set_description("Validation")
             for i, (X, Y_depths) in enumerate(pbar):
                 X, Y_depths = X.to(self.device), Y_depths.to(self.device)
-                hidden = self.model.init_hidden(10)
-                output_depths, hidden = self.model(X, hidden)
+                # hidden = self.model.init_hidden(hidden_layer_num)
+                output_depths = self.model(X)
                 output_depths = output_depths.squeeze(1) if output_depths != None else None
                 Y_depths = Y_depths.squeeze(1)
                 #Y_segmentations = Y_segmentations.squeeze(1)
@@ -138,13 +158,13 @@ class Trainer(object):
                 self.img_logger(X_1, Y_depths_1, output_depths_1)
         return val_loss/(i+1)
 
-    def save_model(self):
-        path_model = os.path.join(self.config['General']['path_model'], self.model.__class__.__name__)
+    def save_model(self, epoch):
+        path_model = os.path.join(self.config['General']['path_model'], str(epoch)+self.model.__class__.__name__)
         create_dir(path_model)
         torch.save({'model_state_dict': self.model.state_dict(),
                     'optimizer_backbone_state_dict': self.optimizer_backbone.state_dict(),
                     'optimizer_scratch_state_dict': self.optimizer_scratch.state_dict()
-                    }, path_model+'.p')
+                    }, path_model+'.pth')
         print('Model saved at : {}'.format(path_model))
 
     def img_logger(self, X, Y_depths, output_depths):

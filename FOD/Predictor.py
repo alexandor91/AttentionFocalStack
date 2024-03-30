@@ -45,7 +45,7 @@ class Predictor(object):
                     type        =   self.type,
                     patch_size  =   config['General']['patch_size'],
         )
-        path_model = os.path.join(config['General']['path_model'], 'FocusOnDepth_{}.p'.format(config['General']['model_timm']))
+        path_model = os.path.join(config['General']['path_model'], 'FocusOnDepth_{}.pth'.format(config['General']['model_timm']))
         self.model.load_state_dict(
             torch.load(path_model, map_location=self.device)['model_state_dict']
         )
@@ -61,7 +61,7 @@ class Predictor(object):
 
     def run(self):
         with torch.no_grad():
-            hidden = self.model.init_hidden(10)
+            hidden = self.model.init_hidden(1)
             for images in self.input_images:
                 pil_im = Image.open(images)
                 original_size = pil_im.size

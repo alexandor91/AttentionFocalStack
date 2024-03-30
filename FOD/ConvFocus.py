@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from FOD.resnet import resnet50
+import os
 
 class ConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=1, padding=0, stride=1, dilation=1, bias=False):
@@ -199,17 +200,18 @@ class ConvFocus(nn.Module):
                     type        =   self.type,
                     patch_size  =   config['General']['patch_size'],
         )
-        path_model = '/home/eavise/ShuhuaYang/FocusOnDepth-LSTMUNet/models/FocusOnDepth_vit_base_patch16_384ViT.p'
-
-        self.model.load_state_dict(
-            torch.load(path_model, map_location=self.device)['model_state_dict']
-        )
-        self.model.eval()
+        base_dir = '/home/eavise3d/AttentionFocalStack/weight'
+        path_model = os.path.join(base_dir, 'FocusOnDepth_vit_base_patch16_384ViT.pth')
+        if path_model is None:
+            self.model.load_state_dict(
+                torch.load(path_model, map_location=self.device)['model_state_dict']
+            )
+            self.model.eval()
 
     def forward(self, img, hidden=None):
 
-        img = self.Unet(img)
-        img = self.Pspnet(img)
+        # img = self.Unet(img)
+        # img = self.Pspnet(img)
         with torch.no_grad():
             output_depth, hidden = self.model(img, hidden)
 

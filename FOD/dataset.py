@@ -36,9 +36,12 @@ class AutoFocusDataset(Dataset):
         self.split = split
         self.config = config
 
-        path_images = os.path.join(config['Dataset']['paths']['path_dataset'], dataset_name, config['Dataset']['paths']['path_images'])
-        path_depths = os.path.join(config['Dataset']['paths']['path_dataset'], dataset_name, config['Dataset']['paths']['path_depths'])
+        path_images = os.path.join(config['Dataset']['paths']['path_dataset'], dataset_name, config['Dataset']['paths']['path_images']) #config['Dataset']['paths']['path_images']
+        path_depths = os.path.join(config['Dataset']['paths']['path_dataset'], dataset_name, config['Dataset']['paths']['path_depths']) #config['Dataset']['paths']['path_depths']
         #path_segmentations = os.path.join(config['Dataset']['paths']['path_dataset'], dataset_name, config['Dataset']['paths']['path_segmentations'])
+        print('########################')
+        print(path_images)
+        print(path_depths)
 
         self.paths_images = get_total_paths(path_images, config['Dataset']['extensions']['ext_images'])
         self.paths_depths = get_total_paths(path_depths, config['Dataset']['extensions']['ext_depths'])
@@ -72,10 +75,14 @@ class AutoFocusDataset(Dataset):
         """
             Getter function in order to get the triplet of images / depth maps and segmentation masks
         """
+        print("iteration begins!")
         if torch.is_tensor(idx):
             idx = idx.tolist()
         image = self.transform_image(Image.open(self.paths_images[idx]))
+        print("color image ######")
         depth = self.transform_depth(Image.open(self.paths_depths[idx]))
+        print("depth image")
+
         #segmentation = self.transform_seg(Image.open(self.paths_segmentations[idx]))
         imgorig = image.clone()
 
