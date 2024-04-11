@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 def compute_scale_and_shift(prediction, target, mask):
     # system matrix: A = [[a_00, a_01], [a_10, a_11]]
@@ -75,6 +76,34 @@ def gradient_loss(prediction, target, mask, reduction=reduction_batch_based):
 
     return reduction(image_loss, M)
 
+def laplacian_variance_loss(pred, target):
+    """
+    Calculates the loss by comparing the variance of the Laplacian of the predicted depth map
+    with the variance of the Laplacian of the ground truth depth map.
+
+    Args:
+        pred (torch.Tensor): The predicted depth map of shape (1, H, W).
+        target (torch.Tensor): The ground truth depth map of shape (1, H, W).
+
+    Returns:
+        torch.Tensor: The calculated loss value.
+    """
+    # Calculate the Laplacian of the predicted depth map
+    pred_laplacian = F.laplacian(pred, kernel_size=3, padding=1, dilation=1)
+
+    # Calculate the Laplacian of the ground truth depth map
+    target_laplacian = F.laplacian(target, kernel_size=3, padding=1, dilation=1)
+
+    # Calculate the variance of the Laplacian for the predicted depth map
+    pred_var = pred_laplacian.var()
+
+    # Calculate the variance of the Laplacian for the ground truth depth map
+    target_var = target_laplacian.var()
+
+    # Calculate the loss as the absolute difference between the variances
+    loss = torch.abs(pred_var - target_var)
+
+    return loss
 
 class MSELoss(nn.Module):
     def __init__(self, reduction='batch-based'):
@@ -175,7 +204,8 @@ class ScaleAndShiftInvariantLoss(nn.Module):
 
         total = self.__data_loss(self.__prediction_ssi, target, mask)
         if self.__alpha > 0:
-            total += self.__alpha * self.__regularization_loss(self.__prediction_ssi, target, mask)
+            total += self.__alpha * self.__regularization_loss(self.__prediction_ssi, target, mask) \
+            + self.__alpha * laplacian_variance_loss(prediction, target)
 
         return total
 

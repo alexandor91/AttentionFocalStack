@@ -40,6 +40,26 @@ from PIL import Image
 #         out, h = self.rnn(x, h)
 #         out = self.fc(out[:,-1,:]).squeeze(1)
 #         return out
+class EarlyMultiConvolutionModule(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(EarlyMultiConvolutionModule, self).__init__()
+        self.conv3x3 = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
+        self.conv5x5 = nn.Conv2d(in_channels, out_channels, kernel_size=5, padding=2)
+        self.conv7x7 = nn.Conv2d(in_channels, out_channels, kernel_size=7, padding=3)
+        
+        self.depth_wise = nn.Conv2d(out_channels * 3, out_channels, kernel_size=3, padding=1, groups=out_channels)
+        self.conv1x1 = nn.Conv2d(out_channels, out_channels, kernel_size=1)
+
+    def forward(self, x):
+        out3x3 = self.conv3x3(x)
+        out5x5 = self.conv5x5(x)
+        out7x7 = self.conv7x7(x)
+        
+        out = torch.cat([out3x3, out5x5, out7x7], dim=1)
+        out = self.depth_wise(out)
+        out = self.conv1x1(out)
+        
+        return out
 
 class LSTM(nn.Module):
     def __init__(self, lstm_layer=2, input_dim=1, hidden_size=8):
@@ -48,7 +68,7 @@ class LSTM(nn.Module):
         self.lstm_layer = lstm_layer
         self.emb_layer = nn.Linear(input_dim, hidden_size)
         self.out_layer = nn.Linear(hidden_size, input_dim)
-        self.lstm = nn.LSTM(input_size=rnn_unit, hidden_size=hidden_size, num_layers=self.lstm_layer, batch_first=True)
+        self.lstm = nn.LSTM(input_size=1024, hidden_size=hidden_size, num_layers=self.lstm_layer, batch_first=True)
     
     def init_hidden(self, x):
         batch_size = x.shape[0]
@@ -65,11 +85,43 @@ class LSTM(nn.Module):
         out = self.out_layer(output[:,-1,:]).squeeze(1)
         return out
     
+class FrameFusionLSTM(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers):
+        super(FrameFusionLSTM, self).__init__()
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+        self.hidden_size = hidden_size
+
+    def forward(self, input_tensor):
+        batch_size, num_frames, token_dim = input_tensor.size()
+        num_tokens = input_tensor.size(1)
+
+        # Reshape input tensor to (batch_size * num_frames, num_tokens, token_dim)
+        input_tensor = input_tensor.view(-1, num_tokens, token_dim)
+
+        # Initialize hidden and cell states
+        h_0 = torch.zeros(self.lstm.num_layers, batch_size * num_frames, self.hidden_size, device=input_tensor.device)
+        c_0 = torch.zeros(self.lstm.num_layers, batch_size * num_frames, self.hidden_size, device=input_tensor.device)
+
+        # Pass input through LSTM
+        output, _ = self.lstm(input_tensor, (h_0, c_0))
+
+        # Reshape output to (batch_size, num_frames, num_tokens, hidden_size)
+        output = output.view(batch_size, num_frames, num_tokens, self.hidden_size)
+
+        # Fuse output tokens along the frame dimension
+        fused_output = output.max(dim=1)[0]
+
+        return fused_output  
+
+
 class FocusOnDepth(nn.Module):
     def __init__(self,
                  image_size         = (3, 384, 384),
                  patch_size         = 16,
                  emb_dim            = 1024,
+                 stack_size         = 9, ###########5, 7, ddff 12 scene
+                 ninp       = 1024,
+                 threshold = 0.4
                  resample_dim       = 256,
                  read               = 'projection',
                  num_layers_encoder = 12,
@@ -104,8 +156,9 @@ class FocusOnDepth(nn.Module):
         self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, emb_dim))
 
         # LSTM
-        self.nlstmlayers = 10
-        self.ninp = 1000
+        self.nlstmlayers = stack_size
+        self.ninp = ninp
+        self.threshold = threshold
         self.lstm_encoder = nn.LSTM(self.ninp, self.ninp, self.nlstmlayers)
 
         #Transformer
@@ -143,7 +196,9 @@ class FocusOnDepth(nn.Module):
 
     def forward(self, img, hidden=None):
         # print(img.shape) (1,1,384,384)
-        t = self.transformer_encoders(img)
+        parallel_conv = EarlyMultiConvolutionModule(in_channels=3, out_channels=3)
+        output_feature_map = parallel_conv(img)
+        t = self.transformer_encoders(output_feature_map)
         print('#########encoder starts!!!!##########')
         print(t.shape)
         print(img.shape)
@@ -151,6 +206,33 @@ class FocusOnDepth(nn.Module):
         # t, hidden = self.lstm_encoder(t, hidden)
         count = 0
         previous_stage = None
+        # Example usage
+        # input_tensor = torch.randn(5, 172, 1024)  # (num_frames, num_tokens, token_dim)
+        batch_size, num_frames, token_dim = t.size()
+        num_tokens = t.size(1)
+
+        # Compute token norms
+        token_norms = t.norm(dim=2)
+
+        # Split tokens based on the threshold
+        high_norms = t[token_norms >= self.threshold]
+        low_norms = t[token_norms < self.threshold]
+
+        # Fuse high-norm tokens using FrameFusionLSTM
+        lstm_model = FrameFusionLSTM(input_size=token_dim, hidden_size=512, num_layers=2)
+        fused_high_norms = lstm_model(high_norms.view(batch_size, -1, num_frames, token_dim).transpose(1, 2))
+
+        # Fuse low-norm tokens using mean pooling
+        fused_low_norms = low_norms.view(batch_size, num_frames, -1, token_dim).mean(dim=2)
+
+        # Merge the fused outputs
+        fused_output = torch.zeros(batch_size, num_tokens, token_dim, device=t.device)
+        fused_output[token_norms > self.threshold] = fused_high_norms
+        fused_output[token_norms <= self.threshold] = fused_low_norms
+        t = fused_output
+        # final fused shape
+        print(fused_output.shape)  # Output: torch.Size([172, 1024])  
+
         for i in np.arange(len(self.fusions)-1, -1, -1):
             hook_to_take = 't'+str(self.hooks[i])
             print('###########hook starts!!!!!!###########')

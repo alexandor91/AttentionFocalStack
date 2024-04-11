@@ -30,6 +30,9 @@ class Trainer(object):
         # self.model = ConvFocus(config)
         self.model = FocusOnDepth(
                     image_size  =   (3,resize,resize),
+                    stack_size   = 9, ###########5, 7, ddff 12 scene
+                    ninp       = 1024,
+                    threshold = 0.4
                     emb_dim     =   config['General']['emb_dim'],
                     resample_dim=   config['General']['resample_dim'],
                     read        =   config['General']['read'],
