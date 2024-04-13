@@ -225,6 +225,7 @@ class FocusOnDepth(nn.Module):
         self.counter +=1 
         # Fuse high-norm tokens using FrameFusionLSTM
         if self.counter == self.nlstmlayers: 
+            self.counter = 0 #########reset the counter########### 
             token_features = torch.stack(self.cached_tokens, dim=1)
             token_features = token_features.view(batch_size, num_tokens, num_frames, token_dim).transpose(1, 2)
             lstm_model = FrameFusionLSTM(input_size=token_dim, hidden_size=512, num_layers=2)
