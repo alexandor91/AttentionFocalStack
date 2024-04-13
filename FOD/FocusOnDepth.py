@@ -154,7 +154,8 @@ class FocusOnDepth(nn.Module):
         # #Embedding
         self.cls_token = nn.Parameter(torch.randn(1, 1, emb_dim))
         self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, emb_dim))
-
+        self.counter = 0
+        self.cached_tokens = []
         # LSTM
         self.nlstmlayers = stack_size
         self.ninp = ninp
@@ -199,6 +200,7 @@ class FocusOnDepth(nn.Module):
         parallel_conv = EarlyMultiConvolutionModule(in_channels=3, out_channels=3)
         output_feature_map = parallel_conv(img)
         t = self.transformer_encoders(output_feature_map)
+
         print('#########encoder starts!!!!##########')
         print(t.shape)
         print(img.shape)
@@ -206,7 +208,8 @@ class FocusOnDepth(nn.Module):
         # t, hidden = self.lstm_encoder(t, hidden)
         count = 0
         previous_stage = None
-        # Example usage
+        # Example usageeavise1234
+        
         # input_tensor = torch.randn(5, 172, 1024)  # (num_frames, num_tokens, token_dim)
         batch_size, num_frames, token_dim = t.size()
         num_tokens = t.size(1)
@@ -218,55 +221,60 @@ class FocusOnDepth(nn.Module):
         high_norms = t[token_norms >= self.threshold]
         low_norms = t[token_norms < self.threshold]
 
+        self.cached_tokens.append(high_norms)
+        self.counter +=1 
         # Fuse high-norm tokens using FrameFusionLSTM
-        lstm_model = FrameFusionLSTM(input_size=token_dim, hidden_size=512, num_layers=2)
-        fused_high_norms = lstm_model(high_norms.view(batch_size, -1, num_frames, token_dim).transpose(1, 2))
+        if self.counter == self.nlstmlayers: 
+            token_features = torch.stack(self.cached_tokens, dim=1)
+            token_features = token_features.view(batch_size, num_tokens, num_frames, token_dim).transpose(1, 2)
+            lstm_model = FrameFusionLSTM(input_size=token_dim, hidden_size=512, num_layers=2)
+            fused_high_norms = lstm_model(token_features)
 
-        # Fuse low-norm tokens using mean pooling
-        fused_low_norms = low_norms.view(batch_size, num_frames, -1, token_dim).mean(dim=2)
+            # Fuse low-norm tokens using mean pooling
+            fused_low_norms = low_norms.view(batch_size, num_frames, -1, token_dim).mean(dim=2)
 
-        # Merge the fused outputs
-        fused_output = torch.zeros(batch_size, num_tokens, token_dim, device=t.device)
-        fused_output[token_norms > self.threshold] = fused_high_norms
-        fused_output[token_norms <= self.threshold] = fused_low_norms
-        t = fused_output
-        # final fused shape
-        print(fused_output.shape)  # Output: torch.Size([172, 1024])  
+            # Merge the fused outputs
+            fused_output = torch.zeros(batch_size, num_tokens, token_dim, device=t.device)
+            fused_output[token_norms > self.threshold] = fused_high_norms
+            fused_output[token_norms <= self.threshold] = fused_low_norms
+            t = fused_output
+            # final fused shape
+            print(fused_output.shape)  # Output: torch.Size([172, 1024])  
 
-        for i in np.arange(len(self.fusions)-1, -1, -1):
-            hook_to_take = 't'+str(self.hooks[i])
-            print('###########hook starts!!!!!!###########')
+            for i in np.arange(len(self.fusions)-1, -1, -1):
+                hook_to_take = 't'+str(self.hooks[i])
+                print('###########hook starts!!!!!!###########')
 
-            activation_result = self.activation[hook_to_take]
-            reassemble_result = self.reassembles[i](activation_result)
-            print(activation_result.shape)
+                activation_result = self.activation[hook_to_take]
+                reassemble_result = self.reassembles[i](activation_result)
+                print(activation_result.shape)
 
-            fusion_result = self.fusions[i](reassemble_result, previous_stage)
+                fusion_result = self.fusions[i](reassemble_result, previous_stage)
 
 
-            # out = self.head_depth(fusion_result)
-            # print(i, out.shape)
-            # original_size = (1080, 1080)
-            #output = transforms.ToPILImage()(out.squeeze(0).float()).resize(original_size, resample=Image.BICUBIC)
-            #image = numpy.array(output)
-            #image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-            #image = cv2.Laplacian(image, cv2.CV_16S, ksize=1)
+                # out = self.head_depth(fusion_result)
+                # print(i, out.shape)
+                # original_size = (1080, 1080)
+                #output = transforms.ToPILImage()(out.squeeze(0).float()).resize(original_size, resample=Image.BICUBIC)
+                #image = numpy.array(output)
+                #image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+                #image = cv2.Laplacian(image, cv2.CV_16S, ksize=1)
 
-            #image = cv2.cvtColor(image, cv2.COLORMAP_HOT)
-            #cv2.applyColorMap(image, cv2.COLORMAP_COOL, image)
+                #image = cv2.cvtColor(image, cv2.COLORMAP_HOT)
+                #cv2.applyColorMap(image, cv2.COLORMAP_COOL, image)
 
-            #path_dir = '/home/eavise/ShuhuaYang/FocusOnDepth-LSTM/output/hooks'
-            #cv2.imwrite(os.path.join(path_dir, str(i) + '.jpg'), image)
+                #path_dir = '/home/eavise/ShuhuaYang/FocusOnDepth-LSTM/output/hooks'
+                #cv2.imwrite(os.path.join(path_dir, str(i) + '.jpg'), image)
 
-            previous_stage = fusion_result
-        out_depth = None
-        # out_segmentation = None
-        #print(previous_stage.shape)
-        if self.head_depth != None:
-            out_depth = self.head_depth(previous_stage)
-        #if self.head_segmentation != None:
-        #    out_segmentation = self.head_segmentation(previous_stage)
-        return out_depth #, hidden
+                previous_stage = fusion_result
+            out_depth = None
+            # out_segmentation = None
+            #print(previous_stage.shape)
+            if self.head_depth != None:
+                out_depth = self.head_depth(previous_stage)
+            #if self.head_segmentation != None:
+            #    out_segmentation = self.head_segmentation(previous_stage)
+            return out_depth #, hidden
 
     def _get_layers_from_hooks(self, hooks):
         def get_activation(name):
